@@ -1,8 +1,8 @@
 using System;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
-using UnityEngine.XR.Interaction.Toolkit.Interactors;
 
 /// <summary>
 /// Attach to any target object alongside an XRSimpleInteractable.
@@ -55,13 +55,13 @@ public class GazeConfirmTarget : MonoBehaviour
         _interactable.hoverExited.RemoveListener(HandleHoverExited);
     }
 
-    private void HandleHoverEntered(UnityEngine.XR.Interaction.Toolkit.Interactors.HoverEnterEventArgs args)
+    private void HandleHoverEntered(HoverEnterEventArgs args)
     {
         _isHovered = true;
         _hoverStartTime = Time.time;
     }
 
-    private void HandleHoverExited(UnityEngine.XR.Interaction.Toolkit.Interactors.HoverExitEventArgs args)
+    private void HandleHoverExited(HoverExitEventArgs args)
     {
         _isHovered = false;
     }
