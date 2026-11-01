@@ -25,7 +25,7 @@ namespace COMP3180.GazeStudy.EditorTools
     public static class GazeStudySceneBuilder
     {
         const string ScenePath = "Assets/Scenes/ExperimentalScene.unity";
-        const string RigPrefabPath = "Assets/Samples/XR Interaction Toolkit/3.5.1/Starter Assets/Prefabs/XR Origin (XR Rig).prefab";
+        internal const string RigPrefabPath = "Assets/Samples/XR Interaction Toolkit/3.5.1/Starter Assets/Prefabs/XR Origin (XR Rig).prefab";
         const string MaterialFolder = "Assets/GazeStudy/Materials";
         const string RequestFile = "Temp/GazeStudyBuild.request";
         const string ResultFile = "Temp/GazeStudyBuild.result";
@@ -203,13 +203,13 @@ namespace COMP3180.GazeStudy.EditorTools
             EditorUtility.SetDirty(settings);
         }
 
-        static InputActionProperty EyeAction(string name, string control, string controlType)
+        internal static InputActionProperty EyeAction(string name, string control, string controlType)
         {
             return new InputActionProperty(new InputAction(name, InputActionType.Value,
                 "<EyeGaze>/pose/" + control, expectedControlType: controlType));
         }
 
-        static Canvas CreateCanvas(string name, RenderMode mode)
+        internal static Canvas CreateCanvas(string name, RenderMode mode)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
             go.layer = LayerMask.NameToLayer("UI");
@@ -218,7 +218,7 @@ namespace COMP3180.GazeStudy.EditorTools
             return canvas;
         }
 
-        static TextMeshProUGUI CreateText(string name, Transform parent, float size, TextAlignmentOptions alignment)
+        internal static TextMeshProUGUI CreateText(string name, Transform parent, float size, TextAlignmentOptions alignment)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.layer = LayerMask.NameToLayer("UI");
@@ -232,7 +232,7 @@ namespace COMP3180.GazeStudy.EditorTools
             return text;
         }
 
-        static void PinTopLeft(RectTransform rect, float y, float height)
+        internal static void PinTopLeft(RectTransform rect, float y, float height)
         {
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(1f, 1f);
@@ -241,7 +241,7 @@ namespace COMP3180.GazeStudy.EditorTools
             rect.offsetMax = new Vector2(-20f, y);
         }
 
-        static Material UnlitMaterial(string name, Color color)
+        internal static Material UnlitMaterial(string name, Color color)
         {
             if (!AssetDatabase.IsValidFolder(MaterialFolder))
                 AssetDatabase.CreateFolder("Assets/GazeStudy", "Materials");
@@ -257,14 +257,14 @@ namespace COMP3180.GazeStudy.EditorTools
             return material;
         }
 
-        static Transform Child(Transform root, string name)
+        internal static Transform Child(Transform root, string name)
         {
             var found = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == name);
             if (found == null) throw new InvalidOperationException("Rig has no child named " + name);
             return found;
         }
 
-        static void Set(UnityEngine.Object target, string field, UnityEngine.Object value)
+        internal static void Set(UnityEngine.Object target, string field, UnityEngine.Object value)
         {
             var so = new SerializedObject(target);
             var property = so.FindProperty(field);

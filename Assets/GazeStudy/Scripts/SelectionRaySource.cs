@@ -64,7 +64,7 @@ namespace COMP3180.GazeStudy
             EyeGazeAvailable = DetectEyeGazeDevice();
         }
 
-        static bool DetectEyeGazeDevice()
+        public static bool DetectEyeGazeDevice()
         {
             foreach (var d in InputSystem.devices)
             {
