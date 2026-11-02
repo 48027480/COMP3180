@@ -28,6 +28,8 @@ namespace COMP3180.GazeStudy.EditorTools
         const string HeadsetTextName = "ShooterHeadsetText";
         const string HeadsetPromptName = "HelpPrompt";
         const string TutorialPanelName = "TutorialPanel";
+        const string BorderName = "Border";
+        const float BorderHeight = 30f;
 
         const float RoomHalf = 15f;
         const float CorridorHalfWidth = 1.5f;
@@ -157,8 +159,8 @@ namespace COMP3180.GazeStudy.EditorTools
             GazeStudySceneBuilder.Set(weapon, "input", grab);
 
             BuildResetPad(root, selector, playtests, head);
-            Canvas hudCanvas = BuildHud(root, headsetStatus, playtests);
-            BuildHelp(root, hudCanvas, selector, playtests, head, headsetStatus.transform.parent);
+            BuildHud(root, headsetStatus, playtests);
+            BuildHelp(root, selector, playtests, head, headsetStatus.transform.parent);
 
             EditorUtility.SetDirty(selector);
             EditorSceneManager.MarkSceneDirty(scene);
@@ -192,7 +194,11 @@ namespace COMP3180.GazeStudy.EditorTools
                 (TMP_Text)hudData.FindProperty("statsLabel").objectReferenceValue,
                 (TMP_Text)hudData.FindProperty("headsetLabel").objectReferenceValue);
 
-            BuildHelp(root, hud.GetComponent<Canvas>(), selector, playtests, head, headsetStatus.transform.parent);
+            var crosshair = hud.transform.Find("Crosshair");
+            if (crosshair != null) OutlineCrosshair(crosshair.gameObject);
+            foreach (var area in root.GetComponentsInChildren<PlaytestArea>(true)) AddBorder(area);
+
+            BuildHelp(root, selector, playtests, head, headsetStatus.transform.parent);
             EditorSceneManager.MarkSceneDirty(scene);
         }
 
@@ -330,6 +336,7 @@ namespace COMP3180.GazeStudy.EditorTools
             stand.localPosition = new Vector3(0f, 0f, standZ);
             Marker("StandMarker", bay, new Vector3(0f, 0.01f, standZ), new Vector3(1.2f, 0.01f, 1.2f), markerMaterial);
             Sign(bay, displayName + "\nstep on the marker to start", new Vector3(0f, 3.2f, standZ + 4f), 0f, 3f);
+            AddBorder(area);
 
             targets = new GameObject("Targets").transform;
             targets.SetParent(bay, false);
@@ -338,6 +345,21 @@ namespace COMP3180.GazeStudy.EditorTools
             GazeStudySceneBuilder.Set(area, "standPoint", stand);
             GazeStudySceneBuilder.Set(area, "targetsContainer", targets);
             return area;
+        }
+
+        /// <summary>An invisible box over the bay's floor, so it follows any change to the floor.</summary>
+        static void AddBorder(PlaytestArea area)
+        {
+            var old = area.transform.Find(BorderName);
+            if (old != null) UnityEngine.Object.DestroyImmediate(old.gameObject);
+
+            Transform floor = area.transform.Find("Floor");
+            var border = new GameObject(BorderName).AddComponent<BoxCollider>();
+            border.transform.SetParent(area.transform, false);
+            border.isTrigger = true;
+            border.center = new Vector3(floor.localPosition.x, BorderHeight * 0.5f, floor.localPosition.z);
+            border.size = new Vector3(floor.localScale.x, BorderHeight, floor.localScale.z);
+            GazeStudySceneBuilder.Set(area, "border", border);
         }
 
         static BoxCollider SpawnVolume(Transform bay, Vector3 center, Vector3 size)
@@ -397,7 +419,7 @@ namespace COMP3180.GazeStudy.EditorTools
 
         // ---------------------------------------------------------------- HUD
 
-        static Canvas BuildHud(Transform root, TMP_Text headsetStatus, PlaytestManager playtests)
+        static void BuildHud(Transform root, TMP_Text headsetStatus, PlaytestManager playtests)
         {
             var canvas = GazeStudySceneBuilder.CreateCanvas("Canvas", RenderMode.ScreenSpaceOverlay);
             canvas.transform.SetParent(root, false);
@@ -409,6 +431,7 @@ namespace COMP3180.GazeStudy.EditorTools
             crosshair.transform.SetParent(canvas.transform, false);
             crosshair.rectTransform.sizeDelta = new Vector2(6f, 6f);
             crosshair.raycastTarget = false;
+            OutlineCrosshair(crosshair.gameObject);
 
             var mode = GazeStudySceneBuilder.CreateText("ModeLabel", canvas.transform, 44f, TextAlignmentOptions.TopRight);
             var stats = GazeStudySceneBuilder.CreateText("StatsLabel", canvas.transform, 56f, TextAlignmentOptions.TopRight);
@@ -424,10 +447,18 @@ namespace COMP3180.GazeStudy.EditorTools
             GazeStudySceneBuilder.Set(hud, "modeLabel", mode);
             GazeStudySceneBuilder.Set(hud, "statsLabel", stats);
             GazeStudySceneBuilder.Set(hud, "headsetLabel", headset);
-            return canvas;
         }
 
-        /// <summary>Top right and enlarged, below where the "Press H" prompt sits between tests.</summary>
+        /// <summary>A dark edge keeps the white dot readable against brightened objects.</summary>
+        static void OutlineCrosshair(GameObject crosshair)
+        {
+            if (crosshair.GetComponent<Outline>() != null) return;
+            var outline = crosshair.AddComponent<Outline>();
+            outline.effectColor = Color.black;
+            outline.effectDistance = new Vector2(2f, -2f);
+        }
+
+        /// <summary>Top right and enlarged.</summary>
         static void StyleHud(TMP_Text mode, TMP_Text stats, TMP_Text headset)
         {
             mode.fontSize = 44f;
@@ -446,18 +477,14 @@ namespace COMP3180.GazeStudy.EditorTools
 
         // ---------------------------------------------------------------- help board, tutorials and Play again
 
-        static void BuildHelp(Transform root, Canvas hudCanvas, GazePickupSelector selector, PlaytestManager playtests, Transform head, Transform headsetCanvas)
+        static void BuildHelp(Transform root, GazePickupSelector selector, PlaytestManager playtests, Transform head, Transform headsetCanvas)
         {
-            var prompt = GazeStudySceneBuilder.CreateText("PressHPrompt", hudCanvas.transform, 30f, TextAlignmentOptions.TopRight);
-            PinTopRight(prompt.rectTransform, -10f, 45f);
-            prompt.text = "Press H";
-
             var oldPrompt = headsetCanvas.Find(HeadsetPromptName);
             if (oldPrompt != null) UnityEngine.Object.DestroyImmediate(oldPrompt.gameObject);
             var headsetPrompt = GazeStudySceneBuilder.CreateText(HeadsetPromptName, headsetCanvas, 22f, TextAlignmentOptions.TopRight);
             headsetPrompt.rectTransform.sizeDelta = new Vector2(500f, 40f);
             headsetPrompt.rectTransform.anchoredPosition = new Vector2(350f, 460f);
-            headsetPrompt.text = "Left menu button: help";
+            headsetPrompt.text = "Left Stick Click: Help";
 
             var help = new GameObject("HelpBoard");
             help.transform.SetParent(root, false);
@@ -470,7 +497,7 @@ namespace COMP3180.GazeStudy.EditorTools
             WorldButton interaction = BoardButton(board, "Press 2 for: Interaction Tutorial", 0.02f);
             WorldButton eyeGaze = BoardButton(board, "Aim and grab for: Eye Gaze Tutorial", -0.16f);
             Label(board, "Press CTRL for: Trigger Eye Gaze", new Vector3(0f, -0.3f, -0.02f), 0.6f);
-            Label(board, "Aim at a row and press grab. H or left menu button: close", new Vector3(0f, -0.42f, -0.02f), 0.38f);
+            Label(board, "Aim at a row and press grab. H or left stick click: close", new Vector3(0f, -0.42f, -0.02f), 0.38f);
             board.gameObject.SetActive(false);
 
             var tutorials = help.AddComponent<TutorialSystem>();
@@ -488,7 +515,6 @@ namespace COMP3180.GazeStudy.EditorTools
             GazeStudySceneBuilder.Set(script, "playtests", playtests);
             GazeStudySceneBuilder.Set(script, "head", head);
             GazeStudySceneBuilder.Set(script, "board", board.gameObject);
-            GazeStudySceneBuilder.Set(script, "desktopPrompt", prompt.gameObject);
             GazeStudySceneBuilder.Set(script, "headsetPrompt", headsetPrompt.gameObject);
             GazeStudySceneBuilder.Set(script, "movementButton", movement);
             GazeStudySceneBuilder.Set(script, "interactionButton", interaction);

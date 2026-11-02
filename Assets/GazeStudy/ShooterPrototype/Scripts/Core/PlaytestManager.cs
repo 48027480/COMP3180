@@ -4,8 +4,8 @@ using UnityEngine;
 public enum TestState { Idle, Running, Ended }
 
 /// Stepping on an area's stand marker starts a timed test there and stops the others. At zero the
-/// result is logged and saved, and only Play again restarts that area. A test cut short (another
-/// marker, the reset pad, quitting) is saved too, marked as not completed.
+/// result is logged and saved, and only Play again restarts that area. A test cut short (leaving the
+/// area, the reset pad, quitting) is saved too, marked as not completed.
 public class PlaytestManager : MonoBehaviour
 {
     [SerializeField] Transform head;
@@ -23,6 +23,9 @@ public class PlaytestManager : MonoBehaviour
     public int Hits { get; private set; }
     public float TimeLeft { get; private set; }
     public float Accuracy => Shots > 0 ? (Hits / (float)Shots) * 100f : 0f;
+    public bool PlayerInArea => current >= 0 && areas[current].Contains(head.position);
+
+    void Awake() => TestResultsCsv.BeginSession();
 
     void OnEnable()
     {
@@ -57,7 +60,13 @@ public class PlaytestManager : MonoBehaviour
 
         if (!IsRunning) return;
 
-        TimeLeft = Mathf.Max(0f, TimeLeft - Time.deltaTime);
+        if (!PlayerInArea)
+        {
+            FinishTest(false);
+            return;
+        }
+
+        TimeLeft =Mathf.Max(0f, TimeLeft - Time.deltaTime);
         if (TimeLeft <= 0f) FinishTest(true);
     }
 

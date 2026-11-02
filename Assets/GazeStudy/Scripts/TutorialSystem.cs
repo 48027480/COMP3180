@@ -85,7 +85,7 @@ namespace COMP3180.GazeStudy
         {
             stepIndex = index;
             steps[index].begin?.Invoke();
-            panelText.text = $"Step {index + 1} of {steps.Length}\n{steps[index].text}\n<size=70%>H / left menu button: exit tutorial</size>";
+            panelText.text = $"Step {index + 1} of {steps.Length}\n{steps[index].text}\n<size=70%>H / left stick click: exit tutorial</size>";
         }
 
         void MarkPlayer()
@@ -107,7 +107,7 @@ namespace COMP3180.GazeStudy
         {
             new Step { text = "Walk a few steps.\nWASD or left stick", begin = MarkPlayer, done = () => Walked() >= WalkDistance },
             new Step { text = "Look around.\nHold right mouse and move, or use the right stick", begin = MarkPlayer, done = () => Vector3.Angle(startForward, FlatForward()) >= TurnAngle },
-            new Step { text = "Move faster.\nHold Shift, or press the left stick, while walking", begin = MarkPlayer, done = () => body.IsSprinting && Walked() >= WalkDistance }
+            new Step { text = "Move faster.\nHold Shift, or the left trigger, while walking", begin = MarkPlayer, done = () => body.IsSprinting && Walked() >= WalkDistance }
         };
 
         Step[] InteractionSteps() => new[]
@@ -127,7 +127,7 @@ namespace COMP3180.GazeStudy
         {
             new Step
             {
-                text = "Switch eye gaze.\nPress Ctrl, or the right A or menu button",
+                text = "Switch eye gaze.\nPress Ctrl, or the right A button",
                 begin = () => startGaze = selector.GazeEnabled,
                 done = () => selector.GazeEnabled != startGaze
             },

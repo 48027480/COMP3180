@@ -9,7 +9,7 @@ namespace COMP3180.GazeStudy
     /// Playground selection: aim at an object and hold grab to drag it along the ray. Releasing drops it.
     ///   Gaze ON  -> aim with the eye tracker (head if no eye device; camera on desktop)
     ///   Gaze OFF -> aim with the right controller laser (no aiming on desktop)
-    /// Toggle: Ctrl on the keyboard, or the right controller's A / menu button.
+    /// Toggle: Ctrl on the keyboard, or the right controller's A button.
     /// The nearest collider blocks the ray, so stands and objects in front hide what is behind them.
     /// With the gun equipped inside the prototype zone nothing can be grabbed, as the button fires instead.
     /// </summary>
@@ -18,6 +18,8 @@ namespace COMP3180.GazeStudy
         const float RayLengthWithoutHit = 6f;
         const float DragClearance = 0.15f;
         const float DragSmoothing = 15f;
+        const float ReticleMinSize = 0.03f;
+        const float ReticleSizePerMetre = 0.012f;
 
         [Header("Pose sources")]
         [SerializeField] Transform eyeGazePose;
@@ -58,9 +60,7 @@ namespace COMP3180.GazeStudy
 
         void OnEnable()
         {
-            toggleAction = new InputAction("ToggleGaze", InputActionType.Button);
-            toggleAction.AddBinding("<XRController>{RightHand}/{PrimaryButton}");
-            toggleAction.AddBinding("<XRController>{RightHand}/{MenuButton}");
+            toggleAction = new InputAction("ToggleGaze", InputActionType.Button, "<XRController>{RightHand}/{PrimaryButton}");
             toggleAction.Enable();
         }
 
@@ -232,7 +232,13 @@ namespace COMP3180.GazeStudy
             }
 
             reticle.gameObject.SetActive(hasRay);
-            if (hasRay) reticle.position = ray.GetPoint(length);
+            if (!hasRay) return;
+
+            // Held clear of the surface and kept a readable size, so objects can't swallow it.
+            Vector3 surface = ray.GetPoint(length);
+            float size = Mathf.Max(ReticleMinSize, Vector3.Distance(headPose.position, surface) * ReticleSizePerMetre);
+            reticle.localScale = Vector3.one * size;
+            reticle.position = ray.GetPoint(Mathf.Max(0f, length - size));
         }
 
         void UpdateStatus()

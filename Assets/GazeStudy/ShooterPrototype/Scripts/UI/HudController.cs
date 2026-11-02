@@ -4,12 +4,15 @@ using UnityEngine.XR;
 
 public class HudController : MonoBehaviour
 {
+    const float FadeSeconds = 0.5f;
+
     [SerializeField] PlaytestManager playtests;
     [SerializeField] TMP_Text modeLabel;
     [SerializeField] TMP_Text statsLabel;
     [SerializeField] TMP_Text headsetLabel;   // overlay canvases don't show in the headset
 
     string mode = "";
+    float visibility = 1f;
 
     void OnEnable() => GameEvents.PlaytestChanged += OnModeChanged;
     void OnDisable() => GameEvents.PlaytestChanged -= OnModeChanged;
@@ -31,5 +34,10 @@ public class HudController : MonoBehaviour
         modeLabel.text = title;
         statsLabel.text = stats;
         headsetLabel.text = XRSettings.isDeviceActive ? title + "\n" + stats : "";
+
+        visibility = Mathf.MoveTowards(visibility, playtests.PlayerInArea ? 1f : 0f, Time.deltaTime / FadeSeconds);
+        modeLabel.alpha = visibility;
+        statsLabel.alpha = visibility;
+        headsetLabel.alpha = visibility;
     }
 }

@@ -7,7 +7,7 @@ namespace COMP3180.GazeStudy
     /// <summary>
     /// Walking player for the playground, attached to the XR Origin.
     ///   Move: WASD or the left stick, relative to where the head faces.
-    ///   Sprint: hold Shift or press the left stick.
+    ///   Sprint: hold Shift or the left trigger.
     ///   Turn: right stick, or hold the right mouse button when no headset is active.
     /// The CharacterController and capsule body follow the head so room-scale steps stay inside the body.
     /// </summary>
@@ -47,7 +47,9 @@ namespace COMP3180.GazeStudy
         {
             moveAction = new InputAction("Move", InputActionType.Value, "<XRController>{LeftHand}/{Primary2DAxis}", expectedControlType: "Vector2");
             turnAction = new InputAction("Turn", InputActionType.Value, "<XRController>{RightHand}/{Primary2DAxis}", expectedControlType: "Vector2");
-            sprintAction = new InputAction("Sprint", InputActionType.Button, "<XRController>{LeftHand}/{Primary2DAxisClick}");
+            sprintAction = new InputAction("Sprint", InputActionType.Button);
+            sprintAction.AddBinding("<XRController>{LeftHand}/{TriggerButton}");
+            sprintAction.AddBinding("<XRController>{LeftHand}/triggerPressed");
             moveAction.Enable();
             turnAction.Enable();
             sprintAction.Enable();

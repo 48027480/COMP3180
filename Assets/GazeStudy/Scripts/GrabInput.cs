@@ -6,7 +6,7 @@ namespace COMP3180.GazeStudy
 {
     /// <summary>
     /// Playground buttons. Grab is held: the left mouse button or any controller button the playground
-    /// doesn't use for something else (grips, triggers, right B, left X and Y).
+    /// doesn't use for something else (grips, right trigger, right B, left X and Y).
     /// Fire is the left mouse button or the right trigger.
     /// Controllers only count with a headset active, as the XR Interaction Simulator turns desktop
     /// keys into simulated controller presses.
@@ -32,9 +32,9 @@ namespace COMP3180.GazeStudy
             {
                 grab.AddBinding($"<XRController>{hand}/{{GripButton}}");
                 grab.AddBinding($"<XRController>{hand}/gripPressed");
-                grab.AddBinding($"<XRController>{hand}/{{TriggerButton}}");
-                grab.AddBinding($"<XRController>{hand}/triggerPressed");
             }
+            grab.AddBinding("<XRController>{RightHand}/{TriggerButton}");
+            grab.AddBinding("<XRController>{RightHand}/triggerPressed");
             grab.AddBinding("<XRController>{RightHand}/{SecondaryButton}");
             grab.AddBinding("<XRController>{LeftHand}/{PrimaryButton}");
             grab.AddBinding("<XRController>{LeftHand}/{SecondaryButton}");

@@ -5,9 +5,11 @@ public abstract class PlaytestArea : MonoBehaviour
     [SerializeField] string displayName = "Playtest";
     [SerializeField] Transform standPoint;
     [SerializeField] protected Transform targetsContainer; // MUST have scale (1,1,1)
+    [SerializeField] BoxCollider border;                   // invisible, marks where the area ends
 
     public string DisplayName => displayName;
     public Transform StandPoint => standPoint;
+    public bool Contains(Vector3 point) => border.bounds.Contains(point);
     public bool IsRunning { get; private set; }
 
     public void Activate()
