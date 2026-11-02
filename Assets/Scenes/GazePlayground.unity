@@ -14927,7 +14927,7 @@ MonoBehaviour:
   - {fileID: 1394198458}
   playAgainButton: {fileID: 1314410182}
   markerRadius: 0.6
-  testDuration: 60
+  testDuration: 30
   playAgainOffset: {x: 0, y: 1.6, z: 3}
 --- !u!114 &1837892939
 MonoBehaviour:

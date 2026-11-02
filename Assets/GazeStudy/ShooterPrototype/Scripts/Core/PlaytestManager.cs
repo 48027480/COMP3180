@@ -12,7 +12,7 @@ public class PlaytestManager : MonoBehaviour
     [SerializeField] PlaytestArea[] areas;   // order: Area1, Area2, Area3
     [SerializeField] WorldButton playAgainButton;
     [SerializeField] float markerRadius = 0.6f;
-    [SerializeField] float testDuration = 60f;
+    [SerializeField] float testDuration = 30f;
     [SerializeField] Vector3 playAgainOffset = new Vector3(0f, 1.6f, 3f); // from the stand point, in the area's space
 
     int current = -1;
