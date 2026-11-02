@@ -16,6 +16,7 @@ public abstract class PlaytestArea : MonoBehaviour
     {
         ClearTargets();
         IsRunning = true;
+        SetSignVisible(false);
         OnActivated();
     }
 
@@ -24,6 +25,13 @@ public abstract class PlaytestArea : MonoBehaviour
         IsRunning = false;
         OnDeactivated();
         ClearTargets();
+        SetSignVisible(true);
+    }
+
+    void SetSignVisible(bool visible)
+    {
+        Transform sign = transform.Find("Sign");
+        if (sign != null) sign.gameObject.SetActive(visible);
     }
 
     protected abstract void OnActivated();

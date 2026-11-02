@@ -5,7 +5,8 @@ namespace COMP3180.GazeStudy
     /// <summary>
     /// A playground object that can be hovered, dragged and dropped. Stays frozen on its stand until the
     /// first grab, then uses normal physics. Returns to its stand if it falls out of the world.
-    /// With staysInHand set, one grab equips it to a hold point instead of dragging it.
+    /// With staysInHand set, one grab equips it to a hold point instead of dragging it, hidden so it
+    /// doesn't block the view.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class PickupObject : MonoBehaviour
@@ -63,6 +64,7 @@ namespace COMP3180.GazeStudy
             transform.SetParent(holdPoint, false);
             transform.localPosition = Vector3.zero;
             transform.localRotation = Quaternion.identity;
+            SetRenderersEnabled(false);
         }
 
         public void BeginDrag()
@@ -92,6 +94,12 @@ namespace COMP3180.GazeStudy
             transform.SetParent(homeParent, true);
             transform.SetPositionAndRotation(homePosition, homeRotation);
             SetCollidersEnabled(true);
+            SetRenderersEnabled(true);
+        }
+
+        void SetRenderersEnabled(bool value)
+        {
+            foreach (var r in renderers) r.enabled = value;
         }
 
         void SetCollidersEnabled(bool value)

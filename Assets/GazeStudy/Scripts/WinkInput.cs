@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.XR;
 using UnityEngine.XR.OpenXR;
 using VIVE.OpenXR;
@@ -8,8 +9,8 @@ namespace COMP3180.GazeStudy
 {
     /// <summary>
     /// Reads each eye's openness from the VIVE eye tracker. A wink is one eye closed for a moment while
-    /// the other stays open, so normal blinks don't count. Three quick winks switch the assist on or off.
-    /// With assist on, every other wink shows up as Winked for one frame.
+    /// the other stays open, so normal blinks don't count. Three quick winks or the left Y button switch
+    /// the assist on or off. With assist on, every other wink shows up as Winked for one frame.
     /// </summary>
     [DefaultExecutionOrder(-45)]
     public class WinkInput : MonoBehaviour
@@ -25,14 +26,39 @@ namespace COMP3180.GazeStudy
         public bool Winked { get; private set; }
         public event System.Action AssistChanged;
 
+        /// <summary>Live eye values for the status text, as winks can't be checked without seeing them.</summary>
+        public string EyeReadout { get; private set; } = "Eyes: no data";
+
+        InputAction toggleAction;
         float closedSince = -1f, lastWinkTime = -100f, headsetActiveTime;
         bool waitingForOpen, gotData, warned;
         int winkCount;
 
+        void OnEnable()
+        {
+            toggleAction = new InputAction("ToggleAssist", InputActionType.Button, "<XRController>{LeftHand}/{SecondaryButton}");
+            toggleAction.Enable();
+        }
+
+        void OnDisable() => toggleAction.Dispose();
+
+        public void ToggleAssist()
+        {
+            winkCount = 0;
+            AssistOn = !AssistOn;
+            AssistChanged?.Invoke();
+        }
+
         void Update()
         {
             Winked = false;
-            if (!XRSettings.isDeviceActive || !TryReadEyes(out float left, out float right, out bool valid)) return;
+            if (!XRSettings.isDeviceActive) return;
+
+            if (toggleAction.WasPressedThisFrame()) ToggleAssist();
+
+            bool read = TryReadEyes(out float left, out float right, out bool valid);
+            EyeReadout = valid ? $"Eyes: L {left:0.00}  R {right:0.00}" : "Eyes: no data";
+            if (!read) return;
 
             if (valid) gotData = true;
             headsetActiveTime += Time.unscaledDeltaTime;
@@ -76,9 +102,7 @@ namespace COMP3180.GazeStudy
 
             if (winkCount >= WinksToToggle)
             {
-                winkCount = 0;
-                AssistOn = !AssistOn;
-                AssistChanged?.Invoke();
+                ToggleAssist();
                 return;
             }
 

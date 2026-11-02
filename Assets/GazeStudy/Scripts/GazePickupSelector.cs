@@ -275,7 +275,7 @@ namespace COMP3180.GazeStudy
             string assist = Winks.AssistOn ? "   Wink assist: ON" : "";
             string line = $"Eye gaze: {(gazeEnabled ? "ON" : "OFF")}   Aim: {aimSource}{assist}\n{target}";
             statusText.text = line;
-            headsetStatusText.text = line;
+            headsetStatusText.text = $"{line}\n{Winks.EyeReadout}";
         }
     }
 }
