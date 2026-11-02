@@ -12,6 +12,8 @@ namespace COMP3180.GazeStudy
     /// Toggle: Ctrl on the keyboard, or the right controller's A button.
     /// The nearest collider blocks the ray, so stands and objects in front hide what is behind them.
     /// With the gun equipped inside the prototype zone nothing can be grabbed, as the button fires instead.
+    /// Eye-gaze-assist (three winks, see WinkInput) aims with the eyes and adds winks to the buttons: a wink
+    /// picks up what is looked at, the next wink drops it, and with the gun a wink fires.
     /// </summary>
     public class GazePickupSelector : MonoBehaviour
     {
@@ -49,8 +51,11 @@ namespace COMP3180.GazeStudy
         public bool InPrototype => prototypeZone != null && prototypeZone.bounds.Contains(headPose.position);
         public bool HasRay { get; private set; }
         public Ray CurrentRay { get; private set; }
+        public WinkInput Winks { get; private set; }
+        public bool AssistWink => Winks != null && Winks.Winked;
 
         InputAction toggleAction;
+        bool heldByWink, gazeBeforeAssist;
         float nextDeviceCheck;
         bool eyeDeviceAvailable;
         string aimSource = "";
@@ -58,9 +63,22 @@ namespace COMP3180.GazeStudy
         float dragDistance;
         Vector3 dragOffset;
 
+        void Awake()
+        {
+            Winks = gameObject.AddComponent<WinkInput>();
+            Winks.AssistChanged += OnAssistChanged;
+        }
+
+        void OnAssistChanged()
+        {
+            if (Winks.AssistOn) gazeBeforeAssist = gazeEnabled;
+            gazeEnabled = Winks.AssistOn || gazeBeforeAssist;
+            if (!Winks.AssistOn && Held != null && heldByWink) ReleaseHeld();
+        }
+
         void OnEnable()
         {
-            toggleAction = new InputAction("ToggleGaze", InputActionType.Button, "<XRController>{RightHand}/{PrimaryButton}");
+            toggleAction =new InputAction("ToggleGaze", InputActionType.Button, "<XRController>{RightHand}/{PrimaryButton}");
             toggleAction.Enable();
         }
 
@@ -103,25 +121,31 @@ namespace COMP3180.GazeStudy
             SetHovered(Held == null ? found : null);
             SetHoveredButton(Held == null ? foundButton : null);
 
+            bool pressed = grab.GrabPressedThisFrame || AssistWink;
             if (Held != null)
             {
-                if (hasRay && grab.GrabHeld) Drag(ray);
+                bool keepHolding = heldByWink ? !AssistWink : grab.GrabHeld;
+                if (hasRay && keepHolding) Drag(ray);
                 else ReleaseHeld();
             }
-            else if (HoveredButton != null && grab.GrabPressedThisFrame)
+            else if (HoveredButton != null && pressed)
             {
                 HoveredButton.Press();
             }
-            else if (Hovered != null && grab.GrabPressedThisFrame)
+            else if (Hovered != null && pressed)
             {
                 Grab(desktop, hit);
+                heldByWink = Held != null && !grab.GrabPressedThisFrame;
             }
 
             UpdateVisuals(desktop, hasRay, ray, length);
             UpdateStatus();
         }
 
-        public void ToggleGaze() { gazeEnabled = !gazeEnabled; }
+        public void ToggleGaze()
+        {
+            if (!Winks.AssistOn) gazeEnabled = !gazeEnabled; // the assist always aims with the eyes
+        }
 
         public void SetStatusVisible(bool visible)
         {
@@ -133,6 +157,7 @@ namespace COMP3180.GazeStudy
         public void ResetAll()
         {
             Held = null;
+            heldByWink = false;
             gun = null;
             SetHovered(null);
             foreach (var pickup in FindObjectsByType<PickupObject>(FindObjectsSortMode.None)) pickup.ReturnHome();
@@ -203,6 +228,7 @@ namespace COMP3180.GazeStudy
         {
             Held.Release();
             Held = null;
+            heldByWink = false;
         }
 
         void SetHovered(PickupObject target)
@@ -246,7 +272,8 @@ namespace COMP3180.GazeStudy
             string target = Held != null ? "Dragging " + Held.name
                           : Hovered != null ? "Looking at " + Hovered.name
                           : GunEquipped ? "Gun equipped" : "";
-            string line = $"Eye gaze: {(gazeEnabled ? "ON" : "OFF")}   Aim: {aimSource}\n{target}";
+            string assist = Winks.AssistOn ? "   Wink assist: ON" : "";
+            string line = $"Eye gaze: {(gazeEnabled ? "ON" : "OFF")}   Aim: {aimSource}{assist}\n{target}";
             statusText.text = line;
             headsetStatusText.text = line;
         }
