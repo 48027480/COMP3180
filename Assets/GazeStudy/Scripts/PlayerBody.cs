@@ -7,6 +7,7 @@ namespace COMP3180.GazeStudy
     /// <summary>
     /// Walking player for the playground, attached to the XR Origin.
     ///   Move: WASD or the left stick, relative to where the head faces.
+    ///   Sprint: hold Shift or press the left stick.
     ///   Turn: right stick, or hold the right mouse button when no headset is active.
     /// The CharacterController and capsule body follow the head so room-scale steps stay inside the body.
     /// </summary>
@@ -21,14 +22,19 @@ namespace COMP3180.GazeStudy
         [SerializeField] GameObject leftControllerVisual;
         [SerializeField] GameObject rightControllerVisual;
         [SerializeField] float moveSpeed = 2.5f;
+        [SerializeField] float sprintSpeed = 5f;
         [SerializeField] float stickTurnSpeed = 75f;
         [SerializeField] float mouseSensitivity = 0.12f;
         [SerializeField] float gravity = 9.81f;
 
         CharacterController controller;
-        InputAction moveAction, turnAction;
+        InputAction moveAction, turnAction, sprintAction;
         Vector3 spawnPosition;
         float verticalSpeed, mouseYaw, mousePitch;
+
+        // Controllers only count with a headset active, as the XR Interaction Simulator turns desktop keys into simulated controller input.
+        public bool IsSprinting => (Keyboard.current != null && Keyboard.current.shiftKey.isPressed)
+                                || (XRSettings.isDeviceActive && sprintAction != null && sprintAction.IsPressed());
 
         void Awake()
         {
@@ -41,14 +47,18 @@ namespace COMP3180.GazeStudy
         {
             moveAction = new InputAction("Move", InputActionType.Value, "<XRController>{LeftHand}/{Primary2DAxis}", expectedControlType: "Vector2");
             turnAction = new InputAction("Turn", InputActionType.Value, "<XRController>{RightHand}/{Primary2DAxis}", expectedControlType: "Vector2");
+            sprintAction = new InputAction("Sprint", InputActionType.Button, "<XRController>{LeftHand}/{Primary2DAxisClick}");
             moveAction.Enable();
             turnAction.Enable();
+            sprintAction.Enable();
         }
 
         void OnDisable()
         {
             moveAction.Dispose();
             turnAction.Dispose();
+            sprintAction.Dispose();
+            sprintAction = null;
         }
 
         void Update()
@@ -60,7 +70,7 @@ namespace COMP3180.GazeStudy
             leftControllerVisual.SetActive(!desktop);
             rightControllerVisual.SetActive(!desktop);
 
-            float turn = turnAction.ReadValue<Vector2>().x;
+            float turn = desktop ? 0f : turnAction.ReadValue<Vector2>().x;
             if (Mathf.Abs(turn) > 0.2f) transform.RotateAround(head.position, Vector3.up, turn * stickTurnSpeed * Time.deltaTime);
 
             FitBodyToHead();
@@ -101,14 +111,15 @@ namespace COMP3180.GazeStudy
 
         void Walk()
         {
-            Vector2 input = moveAction.ReadValue<Vector2>() + ReadKeyboard();
+            Vector2 stick = XRSettings.isDeviceActive ? moveAction.ReadValue<Vector2>() : Vector2.zero;
+            Vector2 input = stick + ReadKeyboard();
             input = Vector2.ClampMagnitude(input, 1f);
 
             Vector3 forward = Vector3.ProjectOnPlane(head.forward, Vector3.up).normalized;
             Vector3 right = Vector3.Cross(Vector3.up, forward);
 
             verticalSpeed = controller.isGrounded ? -1f : verticalSpeed - gravity * Time.deltaTime;
-            Vector3 velocity = (forward * input.y + right * input.x) * moveSpeed + Vector3.up * verticalSpeed;
+            Vector3 velocity = (forward * input.y + right * input.x) * (IsSprinting ? sprintSpeed : moveSpeed) + Vector3.up * verticalSpeed;
             controller.Move(velocity * Time.deltaTime);
         }
 

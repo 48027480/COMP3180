@@ -42,6 +42,7 @@ namespace COMP3180.GazeStudy
         public bool GazeEnabled => gazeEnabled;
         public PickupObject Hovered { get; private set; }
         public PickupObject Held { get; private set; }
+        public WorldButton HoveredButton { get; private set; }
         public bool GunEquipped => gun != null;
         public bool InPrototype => prototypeZone != null && prototypeZone.bounds.Contains(headPose.position);
         public bool HasRay { get; private set; }
@@ -79,14 +80,15 @@ namespace COMP3180.GazeStudy
 
             var kb = Keyboard.current;
             bool ctrl = kb != null && (kb.leftCtrlKey.wasPressedThisFrame || kb.rightCtrlKey.wasPressedThisFrame);
-            if (ctrl || toggleAction.WasPressedThisFrame()) ToggleGaze();
-
             bool desktop = !XRSettings.isDeviceActive;
+            if (ctrl || (!desktop && toggleAction.WasPressedThisFrame())) ToggleGaze(); // the simulator presses controller buttons on desktop
+
             bool hasRay = TryGetRay(desktop, out Ray ray);
             HasRay = hasRay;
             CurrentRay = ray;
             bool shooting = GunEquipped && InPrototype;
             PickupObject found = null;
+            WorldButton foundButton = null;
             float length = RayLengthWithoutHit;
             RaycastHit hit = default;
 
@@ -95,14 +97,20 @@ namespace COMP3180.GazeStudy
             {
                 length = hit.distance;
                 if (!shooting) found = hit.collider.GetComponentInParent<PickupObject>();
+                foundButton = hit.collider.GetComponentInParent<WorldButton>();
             }
 
             SetHovered(Held == null ? found : null);
+            SetHoveredButton(Held == null ? foundButton : null);
 
             if (Held != null)
             {
                 if (hasRay && grab.GrabHeld) Drag(ray);
                 else ReleaseHeld();
+            }
+            else if (HoveredButton != null && grab.GrabPressedThisFrame)
+            {
+                HoveredButton.Press();
             }
             else if (Hovered != null && grab.GrabPressedThisFrame)
             {
@@ -114,6 +122,12 @@ namespace COMP3180.GazeStudy
         }
 
         public void ToggleGaze() { gazeEnabled = !gazeEnabled; }
+
+        public void SetStatusVisible(bool visible)
+        {
+            statusText.gameObject.SetActive(visible);
+            headsetStatusText.gameObject.SetActive(visible);
+        }
 
         /// <summary>Puts every pickup back where it started, including the gun.</summary>
         public void ResetAll()
@@ -199,6 +213,14 @@ namespace COMP3180.GazeStudy
             if (Hovered != null) Hovered.SetHovered(true);
         }
 
+        void SetHoveredButton(WorldButton target)
+        {
+            if (target == HoveredButton) return;
+            if (HoveredButton != null) HoveredButton.SetHovered(false);
+            HoveredButton = target;
+            if (HoveredButton != null) HoveredButton.SetHovered(true);
+        }
+
         void UpdateVisuals(bool desktop, bool hasRay, Ray ray, float length)
         {
             bool showLine = !desktop && !gazeEnabled && hasRay;
@@ -219,9 +241,7 @@ namespace COMP3180.GazeStudy
                           : Hovered != null ? "Looking at " + Hovered.name
                           : GunEquipped ? "Gun equipped" : "";
             string line = $"Eye gaze: {(gazeEnabled ? "ON" : "OFF")}   Aim: {aimSource}\n{target}";
-            statusText.text = line + "\n\nWASD / left stick: move     Hold right mouse / right stick: look" +
-                              "\nCtrl / right A or menu: eye gaze on/off     Hold left mouse / any free button: grab and drag" +
-                              "\nLeft mouse / right trigger in the prototype area: fire";
+            statusText.text = line;
             headsetStatusText.text = line;
         }
     }

@@ -12,7 +12,8 @@ namespace COMP3180.GazeStudy.EditorTools
 {
     /// <summary>
     /// Adds the reset pad, the gun and the prototype area to Assets/Scenes/GazePlayground.unity without
-    /// touching anything else in the scene. Running it again replaces only what it added.
+    /// touching anything else in the scene. Running it again keeps hand edits to the shooter: it only
+    /// replaces the help board, tutorial panel and Play again button, and restyles the HUD text.
     /// Layout: a corridor from Wall_West meets a north-south hall (the T), with one 30 m bay per area
     /// off the hall's west side. Each bay root faces west, so the spec's +Z points away from the hall.
     /// Run from the menu: COMP3180 > Add Shooter Prototype To Playground.
@@ -25,6 +26,8 @@ namespace COMP3180.GazeStudy.EditorTools
         const string ResultFile = "Temp/ShooterPrototype.result";
         const string RootName = "ShooterPrototype";
         const string HeadsetTextName = "ShooterHeadsetText";
+        const string HeadsetPromptName = "HelpPrompt";
+        const string TutorialPanelName = "TutorialPanel";
 
         const float RoomHalf = 15f;
         const float CorridorHalfWidth = 1.5f;
@@ -46,9 +49,25 @@ namespace COMP3180.GazeStudy.EditorTools
             EditorApplication.delayCall += () =>
             {
                 if (!File.Exists(RequestFile)) return;
-                File.Delete(RequestFile);
-                File.WriteAllText(ResultFile, TryBuild());
+                if (EditorApplication.isPlaying)
+                {
+                    EditorApplication.playModeStateChanged += state =>
+                    {
+                        if (state == PlayModeStateChange.EnteredEditMode) RunRequest();
+                    };
+                    EditorApplication.isPlaying = false;
+                    return;
+                }
+                RunRequest();
             };
+        }
+
+        static void RunRequest()
+        {
+            if (!File.Exists(RequestFile)) return;
+            File.Delete(RequestFile);
+            EditorSceneManager.SaveOpenScenes(); // the scene can read as changed after a recompile; this keeps it as it is
+            File.WriteAllText(ResultFile, TryBuild());
         }
 
         [MenuItem("COMP3180/Add Shooter Prototype To Playground")]
@@ -68,7 +87,8 @@ namespace COMP3180.GazeStudy.EditorTools
                         return "ABORTED: open scene has unsaved changes: " + SceneManager.GetSceneAt(i).path;
 
                 Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-                AddTo(scene);
+                if (scene.GetRootGameObjects().Any(r => r.name == RootName)) UpdateUi(scene);
+                else AddTo(scene);
                 if (!EditorSceneManager.SaveScene(scene)) throw new IOException("Could not save " + ScenePath);
                 AssetDatabase.SaveAssets();
                 return "OK";
@@ -130,15 +150,49 @@ namespace COMP3180.GazeStudy.EditorTools
             var playtests = game.AddComponent<PlaytestManager>();
             GazeStudySceneBuilder.Set(playtests, "head", head);
             SetArray(playtests, "areas", areas);
+            GazeStudySceneBuilder.Set(playtests, "playAgainButton", BuildPlayAgain(root));
 
             var weapon = game.AddComponent<HitscanWeapon>();
             GazeStudySceneBuilder.Set(weapon, "selector", selector);
             GazeStudySceneBuilder.Set(weapon, "input", grab);
 
             BuildResetPad(root, selector, playtests, head);
-            BuildHud(root, headsetStatus);
+            Canvas hudCanvas = BuildHud(root, headsetStatus, playtests);
+            BuildHelp(root, hudCanvas, selector, playtests, head, headsetStatus.transform.parent);
 
             EditorUtility.SetDirty(selector);
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        static void UpdateUi(Scene scene)
+        {
+            GameObject[] roots = scene.GetRootGameObjects();
+            Transform root = FindRoot(roots, RootName).transform;
+            var selector = roots.Select(r => r.GetComponentInChildren<GazePickupSelector>(true)).First(s => s != null);
+            var selectorData = new SerializedObject(selector);
+            var head = (Transform)selectorData.FindProperty("headPose").objectReferenceValue;
+            var headsetStatus = (TMP_Text)selectorData.FindProperty("headsetStatusText").objectReferenceValue;
+            var playtests = root.GetComponentInChildren<PlaytestManager>(true);
+            var hud = root.GetComponentInChildren<HudController>(true);
+
+            CreateMaterials();
+            foreach (string name in new[] { "HelpBoard", "PlayAgainButton" })
+            {
+                var old = root.Find(name);
+                if (old != null) UnityEngine.Object.DestroyImmediate(old.gameObject);
+            }
+            var oldPromptOnHud = hud.transform.Find("PressHPrompt");
+            if (oldPromptOnHud != null) UnityEngine.Object.DestroyImmediate(oldPromptOnHud.gameObject);
+
+            GazeStudySceneBuilder.Set(playtests, "playAgainButton", BuildPlayAgain(root));
+            GazeStudySceneBuilder.Set(hud, "playtests", playtests);
+
+            var hudData = new SerializedObject(hud);
+            StyleHud((TMP_Text)hudData.FindProperty("modeLabel").objectReferenceValue,
+                (TMP_Text)hudData.FindProperty("statsLabel").objectReferenceValue,
+                (TMP_Text)hudData.FindProperty("headsetLabel").objectReferenceValue);
+
+            BuildHelp(root, hud.GetComponent<Canvas>(), selector, playtests, head, headsetStatus.transform.parent);
             EditorSceneManager.MarkSceneDirty(scene);
         }
 
@@ -343,7 +397,7 @@ namespace COMP3180.GazeStudy.EditorTools
 
         // ---------------------------------------------------------------- HUD
 
-        static void BuildHud(Transform root, TMP_Text headsetStatus)
+        static Canvas BuildHud(Transform root, TMP_Text headsetStatus, PlaytestManager playtests)
         {
             var canvas = GazeStudySceneBuilder.CreateCanvas("Canvas", RenderMode.ScreenSpaceOverlay);
             canvas.transform.SetParent(root, false);
@@ -356,24 +410,143 @@ namespace COMP3180.GazeStudy.EditorTools
             crosshair.rectTransform.sizeDelta = new Vector2(6f, 6f);
             crosshair.raycastTarget = false;
 
-            // Top right, as the playground's status text already fills the top left.
-            var mode = GazeStudySceneBuilder.CreateText("ModeLabel", canvas.transform, 36f, TextAlignmentOptions.TopRight);
-            PinTopRight(mode.rectTransform, -10f, 60f);
-            var stats = GazeStudySceneBuilder.CreateText("StatsLabel", canvas.transform, 28f, TextAlignmentOptions.TopRight);
-            PinTopRight(stats.rectTransform, -70f, 130f);
+            var mode = GazeStudySceneBuilder.CreateText("ModeLabel", canvas.transform, 44f, TextAlignmentOptions.TopRight);
+            var stats = GazeStudySceneBuilder.CreateText("StatsLabel", canvas.transform, 56f, TextAlignmentOptions.TopRight);
 
             Transform headsetCanvas = headsetStatus.transform.parent;
             var old = headsetCanvas.Find(HeadsetTextName);
             if (old != null) UnityEngine.Object.DestroyImmediate(old.gameObject);
-            var headset = GazeStudySceneBuilder.CreateText(HeadsetTextName, headsetCanvas, 28f, TextAlignmentOptions.Center);
-            headset.rectTransform.sizeDelta = new Vector2(600f, 80f);
-            headset.rectTransform.anchoredPosition = new Vector2(0f, 500f);
+            var headset = GazeStudySceneBuilder.CreateText(HeadsetTextName, headsetCanvas, 40f, TextAlignmentOptions.TopRight);
+            StyleHud(mode, stats, headset);
 
             var hud = canvas.gameObject.AddComponent<HudController>();
+            GazeStudySceneBuilder.Set(hud, "playtests", playtests);
             GazeStudySceneBuilder.Set(hud, "modeLabel", mode);
             GazeStudySceneBuilder.Set(hud, "statsLabel", stats);
             GazeStudySceneBuilder.Set(hud, "headsetLabel", headset);
+            return canvas;
         }
+
+        /// <summary>Top right and enlarged, below where the "Press H" prompt sits between tests.</summary>
+        static void StyleHud(TMP_Text mode, TMP_Text stats, TMP_Text headset)
+        {
+            mode.fontSize = 44f;
+            mode.alignment = TextAlignmentOptions.TopRight;
+            PinTopRight(mode.rectTransform, -60f, 70f);
+
+            stats.fontSize = 56f;
+            stats.alignment = TextAlignmentOptions.TopRight;
+            PinTopRight(stats.rectTransform, -130f, 300f);
+
+            headset.fontSize = 40f;
+            headset.alignment = TextAlignmentOptions.TopRight;
+            headset.rectTransform.sizeDelta = new Vector2(500f, 280f);
+            headset.rectTransform.anchoredPosition = new Vector2(350f, 300f);
+        }
+
+        // ---------------------------------------------------------------- help board, tutorials and Play again
+
+        static void BuildHelp(Transform root, Canvas hudCanvas, GazePickupSelector selector, PlaytestManager playtests, Transform head, Transform headsetCanvas)
+        {
+            var prompt = GazeStudySceneBuilder.CreateText("PressHPrompt", hudCanvas.transform, 30f, TextAlignmentOptions.TopRight);
+            PinTopRight(prompt.rectTransform, -10f, 45f);
+            prompt.text = "Press H";
+
+            var oldPrompt = headsetCanvas.Find(HeadsetPromptName);
+            if (oldPrompt != null) UnityEngine.Object.DestroyImmediate(oldPrompt.gameObject);
+            var headsetPrompt = GazeStudySceneBuilder.CreateText(HeadsetPromptName, headsetCanvas, 22f, TextAlignmentOptions.TopRight);
+            headsetPrompt.rectTransform.sizeDelta = new Vector2(500f, 40f);
+            headsetPrompt.rectTransform.anchoredPosition = new Vector2(350f, 460f);
+            headsetPrompt.text = "Left menu button: help";
+
+            var help = new GameObject("HelpBoard");
+            help.transform.SetParent(root, false);
+
+            var board = new GameObject("Board").transform;
+            board.SetParent(help.transform, false);
+            Part(board, "Panel", Vector3.zero, new Vector3(1.5f, 1f, 0.02f), wallMaterial);
+            Label(board, "Help", new Vector3(0f, 0.38f, -0.02f), 1f);
+            WorldButton movement = BoardButton(board, "Press 1 for: Movement Tutorial", 0.2f);
+            WorldButton interaction = BoardButton(board, "Press 2 for: Interaction Tutorial", 0.02f);
+            WorldButton eyeGaze = BoardButton(board, "Aim and grab for: Eye Gaze Tutorial", -0.16f);
+            Label(board, "Press CTRL for: Trigger Eye Gaze", new Vector3(0f, -0.3f, -0.02f), 0.6f);
+            Label(board, "Aim at a row and press grab. H or left menu button: close", new Vector3(0f, -0.42f, -0.02f), 0.38f);
+            board.gameObject.SetActive(false);
+
+            var tutorials = help.AddComponent<TutorialSystem>();
+            TMP_Text tutorialText;
+            GameObject panel = BuildTutorialPanel(head, out tutorialText);
+            GazeStudySceneBuilder.Set(tutorials, "selector", selector);
+            GazeStudySceneBuilder.Set(tutorials, "body", head.GetComponentInParent<PlayerBody>());
+            GazeStudySceneBuilder.Set(tutorials, "head", head);
+            GazeStudySceneBuilder.Set(tutorials, "panel", panel);
+            GazeStudySceneBuilder.Set(tutorials, "panelText", tutorialText);
+
+            var script = help.AddComponent<HelpBoard>();
+            GazeStudySceneBuilder.Set(script, "selector", selector);
+            GazeStudySceneBuilder.Set(script, "tutorials", tutorials);
+            GazeStudySceneBuilder.Set(script, "playtests", playtests);
+            GazeStudySceneBuilder.Set(script, "head", head);
+            GazeStudySceneBuilder.Set(script, "board", board.gameObject);
+            GazeStudySceneBuilder.Set(script, "desktopPrompt", prompt.gameObject);
+            GazeStudySceneBuilder.Set(script, "headsetPrompt", headsetPrompt.gameObject);
+            GazeStudySceneBuilder.Set(script, "movementButton", movement);
+            GazeStudySceneBuilder.Set(script, "interactionButton", interaction);
+            GazeStudySceneBuilder.Set(script, "eyeGazeButton", eyeGaze);
+        }
+
+        static WorldButton BoardButton(Transform board, string text, float y)
+        {
+            var button = Box("Button: " + text, board, new Vector3(0f, y, -0.02f), new Vector3(1.35f, 0.15f, 0.02f), ButtonMaterial());
+            Label(board, text, new Vector3(0f, y, -0.04f), 0.6f);
+            return button.AddComponent<WorldButton>();
+        }
+
+        static void Label(Transform parent, string text, Vector3 position, float size)
+        {
+            Sign(parent, text, position, 0f, size);
+        }
+
+        /// <summary>Follows the head and needs no aiming, as its steps advance on what the player does.</summary>
+        static GameObject BuildTutorialPanel(Transform head, out TMP_Text text)
+        {
+            var old = head.Find(TutorialPanelName);
+            if (old != null) UnityEngine.Object.DestroyImmediate(old.gameObject);
+
+            var canvas = GazeStudySceneBuilder.CreateCanvas(TutorialPanelName, RenderMode.WorldSpace);
+            canvas.transform.SetParent(head, false);
+            var rect = (RectTransform)canvas.transform;
+            rect.sizeDelta = new Vector2(800f, 220f);
+            rect.localScale = Vector3.one * 0.001f;
+            rect.localPosition = new Vector3(0f, 0.2f, 1f);
+
+            var background = canvas.gameObject.AddComponent<Image>();
+            background.color = new Color(0f, 0f, 0f, 0.75f);
+            background.raycastTarget = false;
+
+            var label = GazeStudySceneBuilder.CreateText("Text", canvas.transform, 32f, TextAlignmentOptions.Center);
+            label.rectTransform.anchorMin = Vector2.zero;
+            label.rectTransform.anchorMax = Vector2.one;
+            label.rectTransform.offsetMin = new Vector2(20f, 10f);
+            label.rectTransform.offsetMax = new Vector2(-20f, -10f);
+            text = label;
+
+            canvas.gameObject.SetActive(false);
+            return canvas.gameObject;
+        }
+
+        static WorldButton BuildPlayAgain(Transform root)
+        {
+            var button = new GameObject("PlayAgainButton");
+            button.transform.SetParent(root, false);
+            Box("Face", button.transform, Vector3.zero, new Vector3(1.6f, 0.5f, 0.05f), ButtonMaterial());
+            Sign(button.transform, "Play again", new Vector3(0f, 0f, -0.04f), 0f, 1.6f);
+            var world = button.AddComponent<WorldButton>();
+            button.SetActive(false);
+            return world;
+        }
+
+        static Material ButtonMaterial() => Lit("M_Button", new Color(0.15f, 0.5f, 0.75f));
 
         static void PinTopRight(RectTransform rect, float y, float height)
         {

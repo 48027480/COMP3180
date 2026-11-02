@@ -18,6 +18,7 @@ public class HitscanWeapon : MonoBehaviour
     void Update()
     {
         if (!selector.GunEquipped || !selector.InPrototype || !selector.HasRay) return;
+        if (selector.HoveredButton != null) return; // the same press works the button instead
 
         bool wantsFire = automatic ? input.FireHeld : input.FirePressedThisFrame;
         if (wantsFire && Time.time >= nextFireTime)
