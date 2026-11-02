@@ -67,5 +67,5 @@
         "*.sln": "*.csproj",
         "*.slnx": "*.csproj"
     },
-    "dotnet.defaultSolution": "COMP3180.slnx"
+    "dotnet.defaultSolution": "VREyeGaze.slnx"
 }

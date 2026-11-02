@@ -114,6 +114,8 @@ namespace COMP3180.GazeStudy.EditorTools
                 Stand(s, Shape.Capsule, LargeSize, "DiffSizeDepth_Large", c, SideOffset, FarDepth);
             }, "Pink", new Color(0.95f, 0.4f, 0.65f));
 
+            ShooterPrototypeBuilder.AddTo(scene);
+
             if (!EditorSceneManager.SaveScene(scene, ScenePath)) throw new IOException("Could not save " + ScenePath);
             AssetDatabase.SaveAssets();
         }
@@ -237,14 +239,13 @@ namespace COMP3180.GazeStudy.EditorTools
             headText.rectTransform.offsetMax = Vector2.zero;
 
             var manager = new GameObject("PlaygroundManager");
-            var confirm = manager.AddComponent<ConfirmInput>();
+            manager.AddComponent<GrabInput>();
             var selector = manager.AddComponent<GazePickupSelector>();
             GazeStudySceneBuilder.Set(selector, "eyeGazePose", gazePose.transform);
             GazeStudySceneBuilder.Set(selector, "controllerPose", rightController);
             GazeStudySceneBuilder.Set(selector, "headPose", head);
             GazeStudySceneBuilder.Set(selector, "controllerHoldPoint", controllerHold);
             GazeStudySceneBuilder.Set(selector, "desktopHoldPoint", desktopHold);
-            GazeStudySceneBuilder.Set(selector, "confirm", confirm);
             GazeStudySceneBuilder.Set(selector, "controllerLine", line);
             GazeStudySceneBuilder.Set(selector, "reticle", reticle.transform);
             GazeStudySceneBuilder.Set(selector, "statusText", statusText);

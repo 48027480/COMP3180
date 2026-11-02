@@ -3,8 +3,9 @@ using UnityEngine;
 namespace COMP3180.GazeStudy
 {
     /// <summary>
-    /// A playground object that can be hovered, held and dropped. Stays frozen on its stand until the
-    /// first pick up, then uses normal physics. Returns to its stand if it falls out of the world.
+    /// A playground object that can be hovered, dragged and dropped. Stays frozen on its stand until the
+    /// first grab, then uses normal physics. Returns to its stand if it falls out of the world.
+    /// With staysInHand set, one grab equips it to a hold point instead of dragging it.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     public class PickupObject : MonoBehaviour
@@ -12,6 +13,10 @@ namespace COMP3180.GazeStudy
         static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         const float ResetBelowY = -5f;
         const float HoverMix = 0.5f;
+
+        [SerializeField] bool staysInHand;
+
+        public bool StaysInHand => staysInHand;
 
         Rigidbody body;
         Renderer[] renderers;
@@ -57,6 +62,14 @@ namespace COMP3180.GazeStudy
             SetCollidersEnabled(false);
             transform.SetParent(holdPoint, false);
             transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+        }
+
+        public void BeginDrag()
+        {
+            SetHovered(false);
+            body.isKinematic = true;
+            SetCollidersEnabled(false);
         }
 
         public void Release()
@@ -67,11 +80,18 @@ namespace COMP3180.GazeStudy
             body.WakeUp();
         }
 
-        void ReturnHome()
+        public void ReturnHome()
         {
+            SetHovered(false);
+            if (!body.isKinematic)
+            {
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+            }
             body.isKinematic = true;
             transform.SetParent(homeParent, true);
             transform.SetPositionAndRotation(homePosition, homeRotation);
+            SetCollidersEnabled(true);
         }
 
         void SetCollidersEnabled(bool value)
