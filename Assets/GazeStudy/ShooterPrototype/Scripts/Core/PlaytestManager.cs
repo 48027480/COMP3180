@@ -16,6 +16,7 @@ public class PlaytestManager : MonoBehaviour
     [SerializeField] Vector3 playAgainOffset = new Vector3(0f, 1.6f, 3f); // from the stand point, in the area's space
 
     int current = -1;
+    float duration;
 
     public TestState State { get; private set; }
     public bool IsRunning => State == TestState.Running;
@@ -23,6 +24,7 @@ public class PlaytestManager : MonoBehaviour
     public int Hits { get; private set; }
     public float TimeLeft { get; private set; }
     public float Accuracy => Shots > 0 ? (Hits / (float)Shots) * 100f : 0f;
+    public PlaytestArea CurrentArea => current >= 0 ? areas[current] : null;
     public bool PlayerInArea => current >= 0 && areas[current].Contains(head.position);
 
     void Awake() => TestResultsCsv.BeginSession();
@@ -101,7 +103,8 @@ public class PlaytestManager : MonoBehaviour
         current = index;
         Shots = 0;
         Hits = 0;
-        TimeLeft = testDuration;
+        duration = areas[index].Duration > 0f ? areas[index].Duration : testDuration;
+        TimeLeft = duration;
         State = TestState.Running;
         playAgainButton.gameObject.SetActive(false);
         areas[index].Activate();
@@ -114,9 +117,9 @@ public class PlaytestManager : MonoBehaviour
         PlaytestArea area = areas[current];
         area.Deactivate();
 
-        float duration = testDuration - TimeLeft;
-        Debug.Log($"[Playtest] {area.DisplayName}: Shots {Shots}, Hits {Hits}, Accuracy {Accuracy:0.##}%, Duration {duration:0.##}s, Completed {completed}");
-        string path = TestResultsCsv.Save(area.DisplayName, Shots, Hits, Accuracy, duration, completed);
+        float played = duration - TimeLeft;
+        Debug.Log($"[Playtest] {area.DisplayName}: Shots {Shots}, Hits {Hits}, Accuracy {Accuracy:0.##}%, Duration {played:0.##}s, Completed {completed}");
+        string path = TestResultsCsv.Save(area.DisplayName, Shots, Hits, Accuracy, played, completed);
         Debug.Log("[Playtest] Saved to " + path);
 
         Transform stand = area.StandPoint;

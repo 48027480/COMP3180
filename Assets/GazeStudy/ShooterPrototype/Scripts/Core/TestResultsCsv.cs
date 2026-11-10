@@ -16,12 +16,17 @@ public static class TestResultsCsv
 
     public static void BeginSession()
     {
+        sessionPath = NextFile(FileName);
+        File.WriteAllText(sessionPath, Header + Environment.NewLine);
+    }
+
+    /// The path for a new numbered file in the Save folder, one above the largest with that name.
+    public static string NextFile(string name)
+    {
         string root = Application.isMobilePlatform ? Application.persistentDataPath : Path.Combine(Application.dataPath, "..");
         string folder = Path.GetFullPath(Path.Combine(root, "Save"));
         Directory.CreateDirectory(folder);
-
-        sessionPath = Path.Combine(folder, $"{FileName}{LargestNumber(folder) + 1}.csv");
-        File.WriteAllText(sessionPath, Header + Environment.NewLine);
+        return Path.Combine(folder, $"{name}{LargestNumber(folder, name) + 1}.csv");
     }
 
     public static string Save(string area, int shots, int hits, float accuracy, float duration, bool completed)
@@ -44,12 +49,12 @@ public static class TestResultsCsv
         return sessionPath;
     }
 
-    static int LargestNumber(string folder)
+    static int LargestNumber(string folder, string name)
     {
         int largest = 0;
-        foreach (string file in Directory.GetFiles(folder, FileName + "*.csv"))
+        foreach (string file in Directory.GetFiles(folder, name + "*.csv"))
         {
-            Match match = Regex.Match(Path.GetFileName(file), $@"^{FileName}(\d+)\.csv$", RegexOptions.IgnoreCase);
+            Match match = Regex.Match(Path.GetFileName(file), $@"^{name}(\d+)\.csv$", RegexOptions.IgnoreCase);
             if (match.Success && int.TryParse(match.Groups[1].Value, out int number)) largest = Mathf.Max(largest, number);
         }
         return largest;

@@ -44,6 +44,7 @@ namespace COMP3180.GazeStudy
         [SerializeField] bool gazeEnabled = true;
 
         public bool GazeEnabled => gazeEnabled;
+        public string AimSource => aimSource;
         public PickupObject Hovered { get; private set; }
         public PickupObject Held { get; private set; }
         public WorldButton HoveredButton { get; private set; }
@@ -145,6 +146,12 @@ namespace COMP3180.GazeStudy
         public void ToggleGaze()
         {
             if (!Winks.AssistOn) gazeEnabled = !gazeEnabled; // the assist always aims with the eyes
+        }
+
+        /// <summary>Lets a test choose the aim source. Ignored under assist, which always aims with the eyes.</summary>
+        public void SetGazeEnabled(bool on)
+        {
+            if (!Winks.AssistOn) gazeEnabled = on;
         }
 
         public void SetStatusVisible(bool visible)

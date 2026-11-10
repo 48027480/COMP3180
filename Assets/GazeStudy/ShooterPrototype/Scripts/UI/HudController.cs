@@ -30,7 +30,8 @@ public class HudController : MonoBehaviour
         }
 
         string title = playtests.IsRunning ? mode : mode + " - finished";
-        string stats = $"Shots: {playtests.Shots}\nHits: {playtests.Hits}\nAccuracy: {playtests.Accuracy:0}%\nTimer: {Mathf.CeilToInt(playtests.TimeLeft)}s";
+        PlaytestArea area = playtests.CurrentArea;
+        string stats = $"{area.AttemptsLabel}: {playtests.Shots}\n{area.HitsLabel}: {playtests.Hits}\nAccuracy: {playtests.Accuracy:0}%\nTimer: {Mathf.CeilToInt(playtests.TimeLeft)}s";
         modeLabel.text = title;
         statsLabel.text = stats;
         headsetLabel.text = XRSettings.isDeviceActive ? title + "\n" + stats : "";

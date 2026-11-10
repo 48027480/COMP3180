@@ -115,6 +115,7 @@ namespace COMP3180.GazeStudy.EditorTools
             }, "Pink", new Color(0.95f, 0.4f, 0.65f));
 
             ShooterPrototypeBuilder.AddTo(scene);
+            GazeTestsBuilder.AddTo(scene);
 
             if (!EditorSceneManager.SaveScene(scene, ScenePath)) throw new IOException("Could not save " + ScenePath);
             AssetDatabase.SaveAssets();

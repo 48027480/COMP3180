@@ -202,7 +202,7 @@ namespace COMP3180.GazeStudy.EditorTools
             EditorSceneManager.MarkSceneDirty(scene);
         }
 
-        static GameObject FindRoot(GameObject[] roots, string name)
+        internal static GameObject FindRoot(GameObject[] roots, string name)
         {
             var found = roots.FirstOrDefault(r => r.name == name);
             if (found == null) throw new InvalidOperationException("Scene has no root object named " + name);
@@ -348,7 +348,7 @@ namespace COMP3180.GazeStudy.EditorTools
         }
 
         /// <summary>An invisible box over the bay's floor, so it follows any change to the floor.</summary>
-        static void AddBorder(PlaytestArea area)
+        internal static void AddBorder(PlaytestArea area)
         {
             var old = area.transform.Find(BorderName);
             if (old != null) UnityEngine.Object.DestroyImmediate(old.gameObject);
@@ -663,7 +663,7 @@ namespace COMP3180.GazeStudy.EditorTools
 
         // ---------------------------------------------------------------- helpers
 
-        static GameObject Box(string name, Transform parent, Vector3 position, Vector3 scale, Material material)
+        internal static GameObject Box(string name, Transform parent, Vector3 position, Vector3 scale, Material material)
         {
             var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
             box.name = name;
@@ -675,7 +675,7 @@ namespace COMP3180.GazeStudy.EditorTools
         }
 
         /// <summary>A flat disc with no collider, so the player walks over it and rays pass through.</summary>
-        static GameObject Marker(string name, Transform parent, Vector3 position, Vector3 scale, Material material)
+        internal static GameObject Marker(string name, Transform parent, Vector3 position, Vector3 scale, Material material)
         {
             var disc = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             disc.name = name;
@@ -688,7 +688,7 @@ namespace COMP3180.GazeStudy.EditorTools
         }
 
         /// <summary>Text that reads correctly when looking along its yaw.</summary>
-        static void Sign(Transform parent, string message, Vector3 localPosition, float yaw, float size)
+        internal static void Sign(Transform parent, string message, Vector3 localPosition, float yaw, float size)
         {
             var sign = new GameObject("Sign", typeof(RectTransform)).AddComponent<TextMeshPro>();
             sign.transform.SetParent(parent, false);
@@ -700,7 +700,7 @@ namespace COMP3180.GazeStudy.EditorTools
             sign.text = message;
         }
 
-        static void SetString(UnityEngine.Object target, string field, string value)
+        internal static void SetString(UnityEngine.Object target, string field, string value)
         {
             var so = new SerializedObject(target);
             so.FindProperty(field).stringValue = value;
@@ -714,7 +714,7 @@ namespace COMP3180.GazeStudy.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void SetArray(UnityEngine.Object target, string field, UnityEngine.Object[] values)
+        internal static void SetArray(UnityEngine.Object target, string field, UnityEngine.Object[] values)
         {
             var so = new SerializedObject(target);
             var property = so.FindProperty(field);
@@ -730,7 +730,7 @@ namespace COMP3180.GazeStudy.EditorTools
             markerMaterial = Lit("M_StandMarker", new Color(0.25f, 0.75f, 0.35f));
         }
 
-        static Material Lit(string name, Color color)
+        internal static Material Lit(string name, Color color)
         {
             EnsureFolder("Materials");
             string path = Folder + "/Materials/" + name + ".mat";

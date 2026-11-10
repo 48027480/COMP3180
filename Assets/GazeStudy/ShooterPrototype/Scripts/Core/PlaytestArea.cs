@@ -12,6 +12,11 @@ public abstract class PlaytestArea : MonoBehaviour
     public bool Contains(Vector3 point) => border.bounds.Contains(point);
     public bool IsRunning { get; private set; }
 
+    /// Seconds a test lasts here. Zero uses the manager's own duration.
+    public virtual float Duration => 0f;
+    public virtual string AttemptsLabel => "Shots";
+    public virtual string HitsLabel => "Hits";
+
     public void Activate()
     {
         ClearTargets();
