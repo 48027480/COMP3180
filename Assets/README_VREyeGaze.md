@@ -40,15 +40,15 @@ The project also runs without a headset, using the keyboard and mouse.
 
 - I did not give up on the project. I built three playgrounds (the shooter areas) that playtest the build with head gaze now and will work the same way with eye gaze.
 - Because I can't continue the eye-gaze work until the data problem is solved, I am building the test playgrounds first, so they are ready when eye gaze works.
-- The plan is **ten playgrounds**. All ten are now in the scene. Playgrounds 4 to 10 were written for the eye-gaze feature I will implement in the future.
+- The plan is **ten playgrounds**. All ten are now in the scene. Playgrounds 4 to 10 were written for the eye-gaze feature I will implement in the future. So far only I have played them, with head gaze.
 
 ### Where each part stands
 
 | Part | State |
 |---|---|
 | Head gaze aiming, grabbing, shooting | Working and playtested |
-| Playgrounds 1 to 3 (shooter areas) | Working and playtested with head gaze |
-| Playgrounds 4 to 10 (gaze tests) | Built. An automated desktop run started each one, ran it to the end and saved its log without errors. Not yet played by a person, on desktop or in the headset |
+| Playgrounds 1 to 3 (shooter areas) | Working and playtested with head gaze in the headset: one recorded session (`Save/TestResult1.csv` in commit `4108723`) and two questionnaire responses |
+| Playgrounds 4 to 10 (gaze tests) | Working. Played through by me (the developer) with head gaze, and an automated desktop run started each one, ran it to the end and saved its log without errors. Not yet played by other testers |
 | Eye gaze aiming | Code written. No eye data arrives from the headset |
 | Wink input and eye-gaze-assist | Code written and checked with simulated values. Needs eye data to work |
 
@@ -475,7 +475,7 @@ The `Summary` row closes each test with its totals in `Measures`.
 ## Known limits
 
 - **No eye data reaches the project.** Eye gaze aiming, winks and eye-gaze-assist are written but don't work in the headset over VIVE Streaming, and the cause isn't known. All results so far are head gaze. The status text in the headset shows the aim source and live eye values (`Eyes: L 0.92  R 0.88`, or `Eyes: no data`) to help find out.
-- **Playgrounds 4 to 10 are not playtested by a person.** An automated desktop run with a still camera showed that each one starts, runs, ends and writes its log without errors. It could not check correct answers, how the tests look, or anything in the headset. Expect sizes, timings and text positions to need tuning.
+- **Playgrounds 4 to 10 have only been played by me, with head gaze.** My own play and an automated desktop run show that each test starts, runs, ends and writes its log. No other testers have played them yet, so sizes, timings and text positions may still need tuning, and they say nothing about eye behaviour until eye data arrives.
 - **Head gaze hides what the gaze tests are for.** Saccades, smooth pursuit and peripheral drift are eye movements. With head gaze, those tests measure head movement, so they only check that the test and its logging work. The real measurements need the eye tracker.
 - **Hits use the exact ray.** A target counts as looked at only when the ray touches its collider. Eye tracker noise may call for a tolerance later.
 - **Targets are placed around the head at the start.** Walking off the marker during a gaze test changes the angles, and the log doesn't correct for it.
