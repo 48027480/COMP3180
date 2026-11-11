@@ -1,0 +1,8 @@
+DateTime,Area,Shots,Hits,AccuracyPercent,DurationSeconds,Completed
+2026-11-11 15:50:58,"Floating Targets",37,26,70.27,30,True
+2026-11-11 15:51:38,"NPC Range",28,18,64.29,30,True
+2026-11-11 15:52:30,"Aim Trainer",39,34,87.18,30,True
+2026-11-11 15:53:42,"Fixation and Dwell",18,18,100,45,True
+2026-11-11 15:54:35,"Smooth Pursuit Tracker",877,359,40.94,45,True
+2026-11-11 15:55:27,"Saccade Jump Grid",43,41,95.35,45,True
+2026-11-11 15:57:16,"Gaze Menu Room",35,29,82.86,90,True
